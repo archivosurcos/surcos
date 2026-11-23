@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>SURCOS — Archivo musical federal</title>
@@ -100,12 +100,13 @@ const Rv=({r,go,onVote})=>{
     setM({...m,[k]:next});
     if(onVote)onVote(r,k,next?1:-1);
   };
+  const btns=[["a","Buena reseña"],["b","Me manijió a escucharlo"]].map(([k,l])=>html`<button key=${k} onClick=${()=>vote(k)} className=${"text-xs px-2 py-1 border "+(m[k]?"border-sello text-sello":"border-line")}>${l} · ${(r[k]||0)+m[k]}</button>`);
   return html`<article className="border-t border-line py-4"><div className="flex items-center gap-2 flex-wrap"><span className=${"font-mono text-[11px] uppercase px-1.5 py-0.5 "+(r.k==="c"?"bg-ink text-paper":"border border-sello text-sello")}>${r.k==="c"?"Crítica":"Bitácora"}</span><span className="text-sm font-semibold">${r.u}</span>${r.s&&html`<span className="font-mono text-sm text-sello">${r.s}/5</span>`}</div>
 <p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line">${r.x}</p>
 ${hl.length>0&&html`<div className="mt-2 font-mono text-xs text-mute">Temas: ${hl.join(" · ")}</div>`}
 ${tg.length>0&&html`<div className="mt-1 flex gap-1 flex-wrap">${tg.map(t=>html`<span key=${t} className="font-mono text-[11px] border border-line px-1.5">#${t}</span>)}</div>}
 ${br&&html`<div className="mt-2 text-sm">Puente: si te gustó este disco, escuchá <button className="underline text-sello" onClick=${()=>go({n:"d",id:br.id})}>${br.t} — ${br.a}</button></div>`}
-<div className="mt-3 flex gap-2 flex-wrap">${[["a","Buena reseña"],["b","Me manijió a escucharlo"]].map(([k,l])=>html`<button key=${k} onClick=${()=>vote(k)} className=${"text-xs px-2 py-1 border "+(m[k]?"border-sello text-sello":"border-line")}>${l} · ${(r[k]||0)+m[k]}</button>)}</div></article>;
+<div className="mt-3 flex gap-2 flex-wrap">${btns}</div></article>`;
 };
 
 function Form({d,add}){
