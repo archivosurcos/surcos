@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SURCOS — Archivo musical federal</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,700;1,400&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>tailwind.config={theme:{extend:{colors:{paper:'#F4F1EA',ink:'#181818',mute:'#57534E',line:'#D6D1C4',sello:'#B8332A'},fontFamily:{serif:['Lora','Georgia','serif'],mono:['JetBrains Mono','ui-monospace','monospace'],sans:['Inter','system-ui','sans-serif']}}}}</script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{background:#F4F1EA;color:#181818;font-family:Inter,system-ui,sans-serif}
+button,select,input,textarea{font:inherit}
+.ov{overflow-x:auto}
+.vinyl{transform-origin:50px 50px;transform-box:view-box;animation:spin 3s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.vinyl{animation:none}}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+</head><body><div id="r"></div>
+<script>
+const SUPABASE_URL = "https://vgpjwcjkmvwgkddjvqrz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_f6XPA8Cb1VyitA29dk4daA_hsJGncRa";
+
+const hasDb = SUPABASE_URL.startsWith("https://") && SUPABASE_KEY.length > 20;
+const dbHeaders = () => ({
+  apikey: SUPABASE_KEY,
+  Authorization: "Bearer " + SUPABASE_KEY,
+  "Content-Type": "application/json"
+});
+
+const {useState, useEffect} = React, html = htm.bind(React.createElement);
+const PROV=[["CABA","CABA"],["BA","Buenos Aires"],["CT","Catamarca"],["CC","Chaco"],["CH","Chubut"],["CBA","Córdoba"],["CR","Corrientes"],["ER","Entre Ríos"],["FO","Formosa"],["JY","Jujuy"],["LP","La Pampa"],["LR","La Rioja"],["MZA","Mendoza"],["MI","Misiones"],["NQN","Neuquén"],["RN","Río Negro"],["SA","Salta"],["SJ","San Juan"],["SL","San Luis"],["SC","Santa Cruz"],["SF","Santa Fe"],["SE","Santiago del Estero"],["TF","Tierra del Fuego"],["TUC","Tucumán"]];
+const DEC=["70s","80s","90s","2000s","2010s","2020s"],FMT=["LP","EP","Cassette","CD-R","Demo","Netlabel"];
+const TAGS=["crudo","nocturno","portaestudio","pogo","hipnótico","melancólico","bailable","lisérgico"];
+const LK={y:"YouTube",b:"Bandcamp",s:"Spotify",a:"Archive.org"};
+const SC={
+SF:{g:"Dos polos: la costanera santafesina y el sótano rosarino. Cassettes copiados a mano, ciclos en centros culturales y sellos de cuarto.",
+ "80s":"Santa Fe capital: ensayos en galpones ferroviarios y cassettes duplicados en casa.","90s":"Rosario: sótanos del centro, fotocopias como arte de tapa y demos que circulaban de mano en mano.","2010s":"Auge de sellos de cartón y ferias de discos independientes en Rosario.","2020s":"Netlabels del litoral que publican y archivan en línea con licencias abiertas."},
+MZA:{g:"Escena de piedemonte y acequia: rock cuyano de garaje, luego el CD-R casero como soporte de toda una camada.",
+ "80s":"Garajes del Gran Mendoza y cassettes grabados en estudios de radio.","2000s":"CD-R quemados en casa, con tapas impresas en fotocopiadoras de barrio."},
+CBA:{g:"Universidad, sierras y cuarteto: una escena eterna que mezcla ruido, folklore eléctrico y pop de dormitorio.",
+ "90s":"Demos grabados en casas de Nueva Córdoba y rotados en radios comunitarias.","2000s":"Boom del CD-R y de los discos de banda autoeditados por Internet.","2010s":"Pop de dormitorio y el LP independiente prensado en tiradas cortas."},
+TUC:{g:"De la canción de peña al rock zafrero: Tucumán sostiene una escena propia con estudios caseros y festivales de barrio.",
+ "70s":"Folklore progresivo grabado en estudios de radio y editado en vinilo local.","90s":"Cassettes de rock y ska en los alrededores de la plaza Independencia.","2020s":"EP breves, grabados en habitaciones, circulando por Bandcamp y casetera."}};
+const dec=y=>y>=2000?Math.floor(y/10)*10+"s":(Math.floor(y/10)*10-1900)+"s";
+const pn=c=>PROV.find(p=>p[0]===c)?.[1]||c||"";
+const clean=s=>s.replace(/[<>]/g,"").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g,"").trim();
+const D=[
+{id:1,t:"Noches de Vía Muerta",a:"Los Faroles del Puerto",y:1987,c:"Santa Fe",p:"SF",l:"Discos Aljibe (casero)",f:"Cassette",r:"200",k:["#2F3A33","#E9E2CF"],tr:"Vía muerta/Puerto seco/Farol de gas/Costanera 3 a.m.",cr:["Voz y guitarra|Aldo Meza","Bajo|Nelly Roldán","Batería|Cacho Ferreyra","Grabación|Aldo Meza","Estudio|Galpón de la calle Vera"],ln:"ya",h:"Grabado en una sola noche en un galpón ferroviario, con micrófonos prestados por una radio de barrio. Se duplicaron 200 copias en un doble casetero casero y se vendieron en los recitales."},
+{id:2,t:"Sótano Lunes",a:"Cuadrilla Mutante",y:1999,c:"Rosario",p:"SF",l:"Sin sello",f:"Demo",r:"100",k:["#B8332A","#F4F1EA"],tr:"Lunes a la noche/Pichincha/Tren de las 6/Fotocopia",cr:["Voz|Lucho Barrientos","Guitarra|Mica Sosa","Teclados|Tomás Arce","Producción|Mica Sosa","Estudio|Sótano de calle Entre Ríos"],ln:"ya",h:"El demo que sintetiza los lunes de un sótano del centro rosarino. La tapa fue fotocopiada y pintada a mano, una por una, con un sello de goma."},
+{id:3,t:"Agua de Pichincha",a:"Tamara Ibarra",y:2013,c:"Rosario",p:"SF",l:"Cartón Records",f:"LP",r:"300",k:["#C9B99A","#181818"],tr:"Agua de Pichincha/Granero/Puente 3/Domingo de feria",cr:["Voz y piano|Tamara Ibarra","Producción|Santi Pellegrini","Ingeniería|Santi Pellegrini","Estudio|Estudio La Fábrica"],ln:"ybsa",h:"Primer larga duración de una de las voces más reconocibles de la camada rosarina de 2010. Editado en vinilo de tirada corta por un sello de cartón."},
+{id:4,t:"Frecuencia Remanso",a:"Ñandubay Digital",y:2021,c:"Rosario",p:"SF",l:"Netlabel Remanso",f:"Netlabel",r:"Digital",k:["#3B5A5E","#F4F1EA"],tr:"Isla/Remanso/Camalote/Bajante",cr:["Sintetizadores|Ñandubay Digital","Mezcla|Ro Valdez"],ln:"ba",h:"Ambient litoral registrado con grabaciones de campo del río Paraná. Publicado en una netlabel con licencia abierta y archivado también en línea."},
+{id:5,t:"Viento Zonda",a:"Los Cardones Eléctricos",y:1986,c:"Mendoza",p:"MZA",l:"Cuyo Discos Caseros",f:"Cassette",r:"150",k:["#7A4B2A","#F1E6CF"],tr:"Zonda/Carrizal/Calle Ancha/Último colectivo",cr:["Voz|Beto Funes","Guitarras|Mario Araya","Bajo|Gladys Olmos","Estudio|Radio Cuyo FM (sala B)"],ln:"y",h:"Primer cassette de una banda de garaje del Gran Mendoza, registrado en la sala de una radio FM a la madrugada."},
+{id:6,t:"Acequia",a:"Moira Quiroga",y:2008,c:"Mendoza",p:"MZA",l:"Sin sello",f:"CD-R",r:"80",k:["#556B2F","#F4F1EA"],tr:"Acequia/Álamos/Siesta/Cordillera lejana",cr:["Voz y guitarra|Moira Quiroga","Producción|Gabi Landa","Estudio|Cuarto de Gabi"],ln:"ba",h:"Canciones de cuarto grabadas con un micrófono de PC. Se quemaron 80 CD-R con tapas impresas en una fotocopiadora de barrio."},
+{id:7,t:"Sierras de Plomo",a:"Ruido Blanco Serrano",y:1991,c:"Córdoba",p:"CBA",l:"Sin sello",f:"Demo",r:"60",k:["#1F1F1F","#D6D1C4"],tr:"Plomo/Cuesta/Radio rota/Villa",cr:["Guitarra y voz|Facu Bringas","Batería|Nacho Páez","Grabación|Nacho Páez"],ln:"y",h:"Demo de ruido y hardcore serrano grabado en un living de Nueva Córdoba. Rotó en radios comunitarias antes de perderse en la década."},
+{id:8,t:"Lo que dejó el Suquía",a:"Los Mansos del Río",y:2004,c:"Córdoba",p:"CBA",l:"Mansos Records",f:"CD-R",r:"120",k:["#8C6B3F","#F4F1EA"],tr:"Suquía/Costanera vieja/Mansos/Lluvia en barrio Alberdi",cr:["Voz|Fer Quinteros","Guitarra|Lalo Becerra","Bajo|Sole Ríos","Estudio|Mansos Records (casa de Lalo)"],ln:"yb",h:"Disco de rock barrial de la camada del CD-R. Cada copia llevaba una bolsita de papel de estraza con una letra impresa."},
+{id:9,t:"Ciudad Universitaria",a:"Clara Bustos",y:2016,c:"Córdoba",p:"CBA",l:"Corredor Discos",f:"LP",r:"500",k:["#E9D8B4","#B8332A"],tr:"Ciudad Universitaria/Zona de estudio/Parcial/Verano en Alta Gracia",cr:["Voz y guitarra|Clara Bustos","Producción|Julián Ocampo","Ingeniería|Julián Ocampo","Estudio|La Pecera"],ln:"ysb",h:"Pop de dormitorio y apuntes universitarios. Editado en vinilo en una tirada de 500 copias numeradas."},
+{id:10,t:"Tafí Nocturno",a:"Vera Costilla",y:1975,c:"San Miguel de Tucumán",p:"TUC",l:"Sello Tucumán Sonoro",f:"LP",r:"1000",k:["#6B3E26","#F1E6CF"],tr:"Tafí nocturno/Zamba del tabaco/Camino al Cerro/Vidala 3",cr:["Voz|Vera Costilla","Guitarra|Don Ramón Gómez","Percusión|Chicho Aráoz","Grabación|Radio LV Tucumán"],ln:"ya",h:"Folklore progresivo que mezcla zamba y vidala con arreglos eléctricos. Grabado en estudios de radio y editado en vinilo local."},
+{id:11,t:"Zafra y Neón",a:"Los Cañaverales",y:1998,c:"San Miguel de Tucumán",p:"TUC",l:"Zafra Tapes",f:"Cassette",r:"250",k:["#C7A63A","#181818"],tr:"Zafra/Neón/Plaza Independencia/Tren a Famaillá",cr:["Voz|Piti Carrizo","Guitarra|Walter Medina","Trompeta|Dante Salvatierra","Estudio|Garaje de los Medina"],ln:"ya",h:"Ska y rock cañero del noroeste, con trompetas y letras sobre la zafra. Fue editado en una casetera propia con tapas fotocopiadas."},
+{id:12,t:"Yerba Vieja",a:"Palomar Roto",y:2022,c:"San Miguel de Tucumán",p:"TUC",l:"Casetera El Hornero",f:"EP",r:"100",k:["#4A5D3A","#F4F1EA"],tr:"Yerba vieja/Palomar/Siesta tucumana",cr:["Voz y guitarra|Cande Ibáñez","Bajo|Lorenzo Paz","Producción|Cande Ibáñez"],ln:"bs",h:"EP breve grabado en una habitación. Circuló por Bandcamp y una tirada limitada de cassettes con arte hecho a mano."}].map(d=>({tr:"",cr:[],ln:"",h:"",k:["#D6D1C4","#181818"],...d}));
+const R0=[
+{id:"s1",d:2,u:"mica_ros",k:"c",s:4.5,x:"Un demo que suena como el sótano: bajo adelante, voz cansada y una guitarra que se pelea con la mesa. La tercera pista es una joya cruda. Para quien busque la memoria sonora de Rosario en los noventa, es una puerta de entrada ideal.",hl:["Tren de las 6"],tg:["crudo","nocturno"],br:3,a:14,b:6},
+{id:"s2",d:2,u:"tomi_pichi",k:"b",s:null,x:"Conseguí mi copia en una feria de Pichincha. La tapa ya estaba toda manchada de mate.",hl:[],tg:["portaestudio"],br:null,a:9,b:11},
+{id:"s3",d:2,u:"nando_f",k:"b",s:null,x:"Los vi en un sótano con ocho personas. Nadie sabía la letra y todos cantaban.",hl:[],tg:["pogo"],br:null,a:7,b:5},
+{id:"s4",d:2,u:"lau_sosa",k:"c",s:4,x:"Producción mínima y mucha urgencia. Pichincha tiene el groove más raro del demo. Las voces están al borde de desafinar, pero eso lo hace creíble. Se nota que lo grabaron como si fuera la última vez que iban a tocar.",hl:["Pichincha","Fotocopia"],tg:["crudo","hipnótico"],br:1,a:5,b:3},
+{id:"s5",d:2,u:"gus_c",k:"b",s:null,x:"Lo escuché por primera vez en un cassette grabado de otro cassette. Sonaba a mil años.",hl:[],tg:["nocturno"],br:null,a:3,b:8},
+{id:"s6",d:1,u:"flor_litoral",k:"b",s:null,x:"Mi viejo todavía guarda una copia en la caja de zapatos. No tiene idea de cuánto vale para otros.",hl:[],tg:["melancólico"],br:null,a:11,b:9},
+{id:"s7",d:10,u:"ana_tuc",k:"c",s:5,x:"Un disco que dialoga con el folklore sin ser solo folklore. Las vidalas tienen un peso espiritual enorme y el arreglo eléctrico es de una modernidad increíble para 1975. Hay que escuchar el disco entero, de punta a punta, con auriculares.",hl:["Tafí nocturno","Vidala 3"],tg:["hipnótico","nocturno"],br:5,a:18,b:12},
+{id:"s8",d:12,u:"lore_nqn",k:"b",s:null,x:"Me llegó un cassette por correo con una nota escrita a mano. Eso no se compra.",hl:[],tg:["portaestudio"],br:null,a:6,b:9}];
+
+const mapRow = row => ({
+  id: row.id,
+  d: row.disco_id,
+  u: row.usuario,
+  k: row.tipo,
+  s: row.puntaje !== null && row.puntaje !== undefined ? Number(row.puntaje) : null,
+  x: row.texto,
+  hl: Array.isArray(row.temas) ? row.temas : [],
+  tg: Array.isArray(row.tags) ? row.tags : [],
+  br: row.puente_id || null,
+  a: row.votos_a || 0,
+  b: row.votos_b || 0,
+  db: true
+});
+
+const cover=({d})=>!d?null:html`<div className="aspect-square w-full border border-ink flex flex-col justify-between p-3" style=${{background:d.k?.[0]||"#D6D1C4",color:d.k?.[1]||"#181818"}}><span className="font-mono text-[10px] uppercase tracking-widest">${d.f} · ${d.y}</span><span className="font-serif font-bold leading-tight text-lg">${d.t}</span><span className="font-mono text-[10px] uppercase">${d.a}</span></div>`;
+const Logo=({cls=""})=>html`<span className=${"font-serif font-bold tracking-[0.2em] "+cls} aria-label="SURCOS">SURC<svg viewBox="0 0 100 100" aria-hidden="true" style=${{display:"inline-block",width:"0.74em",height:"0.74em",margin:"0 0.2em 0 0",verticalAlign:"-0.02em"}}><g className="vinyl"><circle cx="50" cy="50" r="49" fill="#181818"/>${[45,42,39,36,33,30,27,24].map(r=>html`<circle key=${r} cx="50" cy="50" r=${r} fill="none" stroke="#55514b" strokeWidth="0.6"/>)}<circle cx="50" cy="50" r="20" fill="#B8332A"/><circle cx="50" cy="50" r="20" fill="none" stroke="#181818" strokeWidth="1" strokeOpacity="0.35"/><circle cx="50" cy="34" r="3" fill="#F4F1EA"/><rect x="49" y="40" width="2" height="5" fill="#F4F1EA" fillOpacity="0.85"/><circle cx="50" cy="50" r="4.5" fill="#F4F1EA"/></g><path d="M50 9 A41 41 0 0 1 91 50" fill="none" stroke="#F4F1EA" strokeOpacity="0.4" strokeWidth="3" strokeLinecap="round"/><path d="M50 91 A41 41 0 0 1 9 50" fill="none" stroke="#F4F1EA" strokeOpacity="0.2" strokeWidth="3" strokeLinecap="round"/></svg>S</span>;
+const Chip=({on,children,...p})=>html`<button className=${"font-mono text-xs px-2.5 py-1 border "+(on?"bg-ink text-paper border-ink":"border-line hover:border-ink")} ...${p}>${children}</button>`;
+const Card=({d,go})=>html`<button onClick=${()=>go({n:"d",id:d.id})} className="text-left group"><${cover} d=${d}/><div className="mt-2 font-serif font-bold leading-snug group-hover:text-sello">${d.t}</div><div className="text-sm text-mute">${d.a}</div><div className="font-mono text-[11px] text-mute">${d.y} · ${d.c}</div></button>`;
+function avg(rs){const s=rs.filter(r=>r.s);return s.length?(s.reduce((a,r)=>a+r.s,0)/s.length).toFixed(1):null}
+
+const Rv=({r,go,onVote})=>{
+  const [m,setM]=useState({a:0,b:0});
+  const br=r.br&&D.find(d=>d.id===r.br);
+  const hl=r.hl||[],tg=r.tg||[];
+  const vote=k=>{
+    const next=m[k]?0:1;
+    setM({...m,[k]:next});
+    if(onVote)onVote(r,k,next?1:-1);
+  };
+  return html`<article className="border-t border-line py-4"><div className="flex items-center gap-2 flex-wrap"><span className=${"font-mono text-[11px] uppercase px-1.5 py-0.5 "+(r.k==="c"?"bg-ink text-paper":"border border-sello text-sello")}>${r.k==="c"?"Crítica":"Bitácora"}</span><span className="text-sm font-semibold">${r.u}</span>${r.s&&html`<span className="font-mono text-sm text-sello">${r.s}/5</span>`}</div>
+<p className="mt-2 text-[15px] leading-relaxed whitespace-pre-line">${r.x}</p>
+${hl.length>0&&html`<div className="mt-2 font-mono text-xs text-mute">Temas: ${hl.join(" · ")}</div>`}
+${tg.length>0&&html`<div className="mt-1 flex gap-1 flex-wrap">${tg.map(t=>html`<span key=${t} className="font-mono text-[11px] border border-line px-1.5">#${t}</span>)}</div>}
+${br&&html`<div className="mt-2 text-sm">Puente: si te gustó este disco, escuchá <button className="underline text-sello" onClick=${()=>go({n:"d",id:br.id})}>${br.t} — ${br.a}</button></div>`}
+<div className="mt-3 flex gap-2 flex-wrap">${[["a","Buena reseña"],["b","Me manijió a escucharlo"]].map(([k,l])=>html`<button key=${k} onClick=${()=>vote(k)} className=${"text-xs px-2 py-1 border "+(m[k]?"border-sello text-sello":"border-line")}>${l} · ${(r[k]||0)+m[k]}</button>)}</div></article>;
+};
+
+function Form({d,add}){
+  const [k,setK]=useState("c"),[u,setU]=useState(""),[s,setS]=useState(""),[x,setX]=useState(""),[hl,setHl]=useState([]),[tg,setTg]=useState([]),[br,setBr]=useState(""),[err,setErr]=useState(""),[busy,setBusy]=useState(false);
+  const tog=(a,set,v,max)=>set(a.includes(v)?a.filter(i=>i!==v):a.length<(max||99)?[...a,v]:a);
+  const need=s&&x.trim().length<150;
+  const send=async()=>{
+    if(busy)return;
+    if(!clean(u))return setErr("Ingresá un nombre de usuario.");
+    if(clean(x).length<10)return setErr("Escribí tu reseña.");
+    if(need)return setErr("Para puntuar necesitás escribir al menos 150 caracteres.");
+    setErr("");
+    setBusy(true);
+    const ok=await add({d:d.id,u:clean(u).slice(0,40),k,s:s?+s:null,x:clean(x),hl,tg,br:br?+br:null});
+    setBusy(false);
+    if(ok){setX("");setS("");setHl([]);setTg([]);setBr("");}
+    else{setErr("No se pudo guardar en Supabase. Revisá que hayas ejecutado el SQL de surcos_resenas.");}
+  };
+  const L="font-mono text-[11px] uppercase text-mute mt-4 mb-1 block";
+  return html`<div className="border border-ink p-4 mt-6"><h3 className="font-serif font-bold text-xl">Sumá tu reseña</h3>
+<div className="flex gap-2 mt-3">${[["c","Crítica","análisis musical o histórico"],["b","Bitácora","anécdota o recuerdo personal"]].map(([v,n,h])=>html`<button key=${v} onClick=${()=>setK(v)} className=${"flex-1 text-left p-2 border "+(k===v?"bg-ink text-paper border-ink":"border-line")}><div className="font-semibold text-sm">${n}</div><div className="text-[11px] opacity-80">${h}</div></button>`)}</div>
+<label className=${L}>Usuario</label><input value=${u} onChange=${e=>setU(e.target.value)} maxLength="40" className="w-full border border-line bg-transparent p-2" placeholder="tu_usuario"/>
+<label className=${L}>Puntaje (opcional)</label><select value=${s} onChange=${e=>setS(e.target.value)} className="border border-line bg-paper p-2"><option value="">Sin puntaje</option>${[0.5,1,1.5,2,2.5,3,3.5,4,4.5,5].map(n=>html`<option key=${n} value=${n}>${n}</option>`)}</select>
+<label className=${L}>${k==="c"?"Tu crítica":"Tu bitácora"}</label><textarea value=${x} onChange=${e=>setX(e.target.value)} rows="5" className="w-full border border-line bg-transparent p-2" placeholder=${k==="c"?"¿Qué escuchás? ¿Qué lugar ocupa en su escena?":"¿Cómo llegó este disco a tus manos? ¿Dónde lo escuchaste?"}></textarea>
+<div className=${"font-mono text-xs "+(need?"text-sello":"text-mute")}>${x.trim().length}${s?" / 150 mínimo":" caracteres"}</div>
+<label className=${L}>Temas destacados (hasta 3)</label><div className="flex gap-1 flex-wrap">${(d.tr?d.tr.split("/"):[]).map(t=>html`<${Chip} key=${t} on=${hl.includes(t)} onClick=${()=>tog(hl,setHl,t,3)}>${t}</${Chip}>`)}</div>
+<label className=${L}>Clima y sonido</label><div className="flex gap-1 flex-wrap">${TAGS.map(t=>html`<${Chip} key=${t} on=${tg.includes(t)} onClick=${()=>tog(tg,setTg,t)}>#${t}</${Chip}>`)}</div>
+<label className=${L}>Puente: “si te gustó este disco, escuchá…”</label><select value=${br} onChange=${e=>setBr(e.target.value)} className="w-full border border-line bg-paper p-2"><option value="">Ninguno</option>${D.filter(o=>o.id!==d.id).map(o=>html`<option key=${o.id} value=${o.id}>${o.t} — ${o.a}</option>`)}</select>
+${err&&html`<p className="mt-3 text-sm text-sello" role="alert">${err}</p>`}
+<button onClick=${send} disabled=${busy} className="mt-4 bg-sello text-paper px-4 py-2 font-semibold disabled:opacity-50">${busy?"Publicando...":"Publicar reseña"}</button></div>`;
+}
+
+function Disc({d,rs,add,go,onVote}){const mine=(rs||[]).filter(r=>r?.d===d.id),n=mine.length,av=avg(mine);
+return html`<div className="grid lg:grid-cols-[340px_1fr] gap-8"><aside>
+<${cover} d=${d} big=${1}/>
+<dl className="mt-4 text-sm divide-y divide-line border-y border-line">${[["Artista",d.a],["Año",d.y],["Ciudad",d.c],["Provincia",pn(d.p)],["Sello",d.l],["Formato",d.f],["Tirada est.",d.r]].map(([a,b])=>html`<div key=${a} className="flex justify-between py-1.5 gap-3"><dt className="text-mute">${a}</dt><dd className="font-mono text-right">${b}</dd></div>`)}</dl>
+<div className="mt-4 flex gap-2 flex-wrap">${d.ln.split("").map(k=>html`<a key=${k} href="#" onClick=${e=>e.preventDefault()} className="border border-ink px-2.5 py-1 text-sm hover:bg-ink hover:text-paper">${LK[k]} ↗️</a>`)}</div>
+<p className="text-[11px] text-mute mt-1">Enlaces externos de ejemplo. SURCOS no aloja audio.</p>
+<h3 className="font-serif font-bold text-lg mt-6">Créditos</h3><ul className="mt-1 border-l border-line pl-3">${d.cr.map(c=>{const [ro,nm]=c.split("|");return html`<li key=${c} className="py-1 text-sm"><span className="font-mono text-[11px] text-mute uppercase">${ro}</span><br/><button className="underline decoration-sello underline-offset-2 text-left" onClick=${()=>go({n:"q",q:nm})}>${nm}</button></li>`})}</ul></aside>
+<section><div className="font-mono text-xs text-mute uppercase">Reseña histórica oficial</div><h1 className="font-serif font-bold text-3xl leading-tight mt-1">${d.t}</h1><p className="font-serif italic text-mute">${d.a}</p>
+<p className="font-serif text-lg leading-relaxed mt-4 border-l-4 border-sello pl-4">${d.h}</p>
+<p className="mt-4 text-sm"><span className="font-mono text-xs text-mute">TEMAS: </span>${d.tr.split("/").join(" · ")}</p>
+<div className="mt-8 flex items-baseline gap-3 border-b border-ink pb-1"><h2 className="font-serif font-bold text-xl">Muro de la comunidad</h2><span className="font-mono text-xs text-mute">${n} reseñas</span></div>
+<div className="font-mono text-sm mt-2">${n>=5&&av?html`Promedio: <b className="text-sello">${av}</b>/5`:html`<span className="text-mute">Promedio oculto: faltan ${Math.max(0,5-n)} reseñas.</span>`}</div>
+${mine.map(r=>html`<${Rv} key=${r.id} r=${r} go=${go} onVote=${onVote}/>)}${n===0&&html<p className="py-4 text-mute">Todavía nadie escribió sobre este disco.</p>`}
+<${Form} d=${d} add=${add}/></section></div>`}
+
+function Prov({code,go}){const [dc,setDc]=useState(""),[ft,setFt]=useState("");const sc=SC[code];
+const L=D.filter(d=>d.p===code&&(!dc||dec(d.y)===dc)&&(!ft||d.f===ft));
+return html`<div><button onClick=${()=>go({n:"h"})} className="font-mono text-xs underline">← Portada federal</button>
+<h1 className="font-serif font-bold text-4xl mt-2">${pn(code)}</h1>
+<div className="mt-4 flex gap-1 flex-wrap ov"><${Chip} on=${!dc} onClick=${()=>setDc("")}>Todas</${Chip}>${DEC.map(x=>html`<${Chip} key=${x} on=${dc===x} onClick=${()=>setDc(x)}>${x}</${Chip}>`)}</div>
+<section className="mt-5 border-y border-ink py-4"><div className="font-mono text-xs text-mute uppercase">Reseña histórica de la escena${dc?" · "+dc:""}</div>
+<p className="font-serif text-lg leading-relaxed mt-2 max-w-2xl">${sc?(dc?(sc[dc]||"Todavía no hay una reseña cargada para esta década."):sc.g):"Todavía no hay escena cargada para esta provincia. El archivo se está construyendo de a poco."}</p></section>
+<div className="mt-5 flex gap-1 flex-wrap ov"><${Chip} on=${!ft} onClick=${()=>setFt("")}>Todos los formatos</${Chip}>${FMT.map(x=>html`<${Chip} key=${x} on=${ft===x} onClick=${()=>setFt(x)}>${x}</${Chip}>`)}</div>
+<div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-5">${L.map(d=>html`<${Card} key=${d.id} d=${d} go=${go}/>`)}</div>
+${L.length===0&&html`<p className="py-8 text-mute">No hay lanzamientos con esos filtros.</p>}</div>}
+
+function Home({rs,go}){const [tab,setTab]=useState("h");
+const cnt=c=>({s:SC[c]?Object.keys(SC[c]).length-1:0,d:D.filter(d=>d.p===c).length});
+const hist=[...D].reverse().slice(0,4),com=rs.slice(0,5);
+return html`<div><p className="font-serif text-2xl md:text-3xl leading-snug max-w-2xl">Un archivo de las escenas, los sellos caseros y los discos de todo el país.</p>
+<h2 className="font-mono text-xs uppercase text-mute mt-8 mb-2">Explorador federal · 23 provincias + CABA</h2>
+<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-px bg-line border border-line">${PROV.map(([c,n])=>{const k=cnt(c);return html`<button key=${c} onClick=${()=>go({n:"p",c})} className=${"bg-paper p-2.5 text-left hover:bg-ink hover:text-paper "+(k.d?"":"text-mute")}><div className="font-mono text-[11px] text-sello">${c}</div><div className="font-serif font-bold text-sm leading-tight">${n}</div><div className="font-mono text-[10px] mt-1">${k.s} escenas · ${k.d} discos</div></button>`})}</div>
+<h2 className="font-mono text-xs uppercase text-mute mt-10">Actividad reciente</h2>
+<div className="md:hidden flex mt-2 border-b border-ink">${[["h","Reseñas históricas"],["c","Comunidad"]].map(([k,l])=>html`<button key=${k} onClick=${()=>setTab(k)} className=${"flex-1 py-2 text-sm "+(tab===k?"bg-ink text-paper":"")}>${l}</button>`)}</div>
+<div className="grid md:grid-cols-2 gap-8 mt-3"><div className=${tab==="h"?"block":"hidden md:block"}><h3 className="font-serif font-bold text-lg hidden md:block border-b border-ink pb-1">Reseñas históricas</h3>${hist.map(d=>html`<button key=${d.id} onClick=${()=>go({n:"d",id:d.id})} className="text-left w-full border-b border-line py-3"><div className="font-mono text-[11px] text-mute">${d.y} · ${d.c} · ${d.f}</div><div className="font-serif font-bold">${d.t} <span className="font-normal text-mute">— ${d.a}</span></div><p className="text-sm text-mute line-clamp-2">${d.h}</p></button>`)}</div>
+<div className=${tab==="c"?"block":"hidden md:block"}><h3 className="font-serif font-bold text-lg hidden md:block border-b border-ink pb-1">Reseñas y bitácoras de la comunidad</h3>${com.map(r=>{const d=D.find(o=>o.id===r.d);if(!d)return null;return html`<button key=${r.id} onClick=${()=>go({n:"d",id:d.id})} className="text-left w-full border-b border-line py-3"><div className="font-mono text-[11px] text-mute">${r.k==="c"?"CRÍTICA":"BITÁCORA"} · ${r.u}${r.s?" · "+r.s+"/5":""}</div><div className="font-serif font-bold">${d.t}</div><p className="text-sm text-mute line-clamp-2">${r.x}</p></button>})}</div></div></div>}
+
+function Search({q,go}){const t=q.toLowerCase();const L=D.filter(d=>[d.t,d.a,d.c,d.l,pn(d.p),...d.cr.map(c=>c.split("|")[1])].join(" ").toLowerCase().includes(t));
+return html`<div><h1 className="font-serif font-bold text-2xl">Resultados para “${q}”</h1><div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-5">${L.map(d=>html`<${Card} key=${d.id} d=${d} go=${go}/>)}</div>${L.length===0&&html<p className="py-6 text-mute">Sin resultados.</p>}</div>}
+
+function App(){
+  const [v,setV]=useState({n:"h"}),[q,setQ]=useState(""),[rs,setRs]=useState(R0),[dbOk,setDbOk]=useState(false);
+
+  useEffect(()=>{
+    if(!hasDb)return;
+    fetch(SUPABASE_URL+"/rest/v1/surcos_resenas?select=*&order=id.desc",{headers:dbHeaders()})
+      .then(res=>{if(!res.ok)throw new Error();return res.json();})
+      .then(rows=>{setDbOk(true);setRs([...rows.map(mapRow),...R0]);})
+      .catch(()=>setDbOk(false));
+  },[]);
+
+  const addReview=async item=>{
+    if(!hasDb){
+      setRs([{...item,id:"local-"+Date.now(),a:0,b:0,db:false},...rs]);
+      return true;
+    }
+    try{
+      const res=await fetch(SUPABASE_URL+"/rest/v1/surcos_resenas",{
+        method:"POST",
+        headers:{...dbHeaders(),Prefer:"return=representation"},
+        body:JSON.stringify({
+          disco_id:item.d,
+          usuario:item.u,
+          tipo:item.k,
+          puntaje:item.s,
+          texto:item.x,
+          temas:item.hl,
+          tags:item.tg,
+          puente_id:item.br,
+          votos_a:0,
+          votos_b:0
+        })
+      });
+      if(!res.ok)return false;
+      const saved=await res.json();
+      if(saved&&saved[0]){setDbOk(true);setRs([mapRow(saved[0]),...rs]);return true;}
+      return false;
+    }catch(e){return false;}
+  };
+
+  const handleVote=(r,key,delta)=>{
+    if(!hasDb||!r.db)return;
+    const nextA=(r.a||0)+(key==="a"?delta:0);
+    const nextB=(r.b||0)+(key==="b"?delta:0);
+    fetch(SUPABASE_URL+"/rest/v1/surcos_resenas?id=eq."+r.id,{
+      method:"PATCH",
+      headers:dbHeaders(),
+      body:JSON.stringify({votos_a:Math.max(0,nextA),votos_b:Math.max(0,nextB)})
+    }).catch(()=>{});
+  };
+
+  const go=x=>{setV(x);setQ("");window.scrollTo(0,0)};
+  const hit=q.trim().length>1?D.filter(d=>[d.t,d.a,d.c,d.l,pn(d.p),...d.cr.map(c=>c.split("|")[1])].join(" ").toLowerCase().includes(q.trim().toLowerCase())).slice(0,6):[];
+  return html`<div className="max-w-5xl mx-auto px-4 pb-16"><header className="py-4 border-b border-ink flex items-center gap-4 flex-wrap relative"><button onClick=${()=>go({n:"h"})} aria-label="SURCOS, ir a la portada" className="text-3xl"><${Logo}/><span className="font-serif font-bold text-sello">.</span></button>
+<div className="flex-1 min-w-[220px] relative"><input value=${q} onChange=${e=>setQ(e.target.value)} onKeyDown=${e=>{if(e.key==="Enter"&&q.trim())go({n:"q",q:q.trim()})}} placeholder="Buscá disco, artista, ciudad, sello o músico…" className="w-full border border-ink bg-transparent px-3 py-2 text-sm" aria-label="Buscar"/>
+${hit.length>0&&html`<div className="absolute z-10 left-0 right-0 bg-paper border border-ink mt-1">${hit.map(d=>html`<button key=${d.id} onClick=${()=>go({n:"d",id:d.id})} className="block w-full text-left px-3 py-2 border-b border-line text-sm"><b>${d.t}</b> · ${d.a} <span className="font-mono text-[11px] text-mute">${d.y} · ${d.c}</span></button>)}</div>}</div></header>
+<main className="pt-6">${v.n==="h"?html`<${Home} rs=${rs} go=${go}/>:v.n==="p"?html<${Prov} key=${v.c} code=${v.c} go=${go}/>:v.n==="q"?html<${Search} q=${v.q} go=${go}/>:(()=>{const cur=D.find(o=>o.id===v.id);return cur?html<div><button onClick=${()=>go({n:"p",c:cur.p})} className="font-mono text-xs underline mb-4 block">← ${pn(cur.p)}</button><${Disc} key=${cur.id} d=${cur} rs=${rs} add=${addReview} go=${go} onVote=${handleVote}/></div>:html<div><button onClick=${()=>go({n:"h"})} className="font-mono text-xs underline">← Portada federal</button><p className="py-8 text-mute">No encontramos ese disco.</p></div>`})()}</main>
+<footer className="mt-12 pt-4 border-t border-line font-mono text-[11px] text-mute flex justify-between flex-wrap gap-2"><span><${Logo} cls="text-base"/> · archivo musical federal</span><span>${dbOk?"● conectado a base de datos":"○ modo local"}</span></footer></div>`;
+}
+
+class EB extends React.Component{constructor(p){super(p);this.state={e:null}}static getDerivedStateFromError(e){return{e}}render(){return this.state.e?html`<div className="max-w-xl mx-auto p-6"><p className="font-serif text-xl">Algo falló al mostrar esta pantalla.</p><button onClick=${()=>location.reload()} className="mt-3 border border-ink px-3 py-1 text-sm">Recargar</button></div>`:this.props.children}}
+ReactDOM.createRoot(document.getElementById("r")).render(html`<${EB}><${App}/></${EB}>`);
+</script></body></html>
